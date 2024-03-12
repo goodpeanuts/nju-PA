@@ -17,6 +17,7 @@
 #include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <memory/vaddr.h>
 #include "sdb.h"
 
 static int is_batch_mode = false;
@@ -49,10 +50,48 @@ static int cmd_c(char *args) {
 
 
 static int cmd_q(char *args) {
+  nemu_state.state = NEMU_END;
   return -1;
 }
 
 static int cmd_help(char *args);
+
+// 单步执行
+static int cmd_si(char *args) {
+  char *arg = strtok(NULL, " ");
+  int steps = 1;
+  if (arg != NULL) {
+    steps = atoi(arg);
+  }
+  cpu_exec(steps);
+  return 0;
+}
+
+
+// 打印寄存器
+static int cmd_info_r(char *args) {
+  isa_reg_display();
+  return 0;
+}
+
+// 扫描内存
+static int cmd_x(char *args) {
+  char *arg1 = strtok(NULL, " ");
+  char *arg2 = strtok(NULL, " ");
+  int n = atoi(arg1);
+  vaddr_t addr;
+  sscanf(arg2, "%x", &addr);
+  for (int i = 0; i < n; i++) {
+    printf("0x%08x: 0x%08x\n", addr + i * 4, vaddr_read(addr + i * 4, 4));
+  }
+  return 0;
+}
+
+// 测试
+static int cmd_t(char *args) {
+  test_expr();
+  return 0;
+}
 
 static struct {
   const char *name;
@@ -62,7 +101,10 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
-
+  { "si", "Single step execution", cmd_si },
+  { "info", "Print the state of the program", cmd_info_r },
+  { "x", "Scan memory", cmd_x },
+  { "t", "test", cmd_t}
   /* TODO: Add more commands */
 
 };

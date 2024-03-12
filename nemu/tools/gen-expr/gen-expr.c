@@ -30,9 +30,51 @@ static char *code_format =
 "  printf(\"%%u\", result); "
 "  return 0; "
 "}";
+static int pt = 0;
 
-static void gen_rand_expr() {
-  buf[0] = '\0';
+int choose(int n) {
+  return rand() % n;
+}
+
+static void gen(char c) {
+  buf[pt ++] = c;
+}
+
+static void gen_num() {
+  int n = choose(10) + 1;
+  if (n > 5) n = 4;
+  int i;
+  for (i = 0; i < n; i ++) {
+    while (1) {
+      int x = choose(10);
+      if (i == 0 && x == 0) continue;
+      gen(x + '0');
+      break;
+    }
+  }
+  // gen('u');
+}
+
+static void gen_rand_op() {
+  switch (choose(4)) {
+    case 0: gen('+'); break;
+    case 1: gen('-'); break;
+    case 2: gen('*'); break;
+    case 3: gen('/'); break;
+  }
+}
+
+static void gen_rand_expr(int level) {
+  if (level > 10) {
+    gen_num();
+    return;
+  }
+  switch (choose(3)) {
+    case 0: gen_num(); break;
+    case 1: gen('('); gen_rand_expr(level + 1); gen(')'); break;
+    default: gen_rand_expr(level + 1); gen_rand_op(); gen_rand_expr(level + 1); break;
+  }
+  buf[pt] = '\0';
 }
 
 int main(int argc, char *argv[]) {
@@ -44,7 +86,9 @@ int main(int argc, char *argv[]) {
   }
   int i;
   for (i = 0; i < loop; i ++) {
-    gen_rand_expr();
+    pt = 0;
+    memset(buf, 0, sizeof(buf));
+    gen_rand_expr(0);
 
     sprintf(code_buf, code_format, buf);
 
@@ -53,7 +97,7 @@ int main(int argc, char *argv[]) {
     fputs(code_buf, fp);
     fclose(fp);
 
-    int ret = system("gcc /tmp/.code.c -o /tmp/.expr");
+    int ret = system("gcc -m32 -Wall -Werror /tmp/.code.c -o /tmp/.expr");
     if (ret != 0) continue;
 
     fp = popen("/tmp/.expr", "r");
