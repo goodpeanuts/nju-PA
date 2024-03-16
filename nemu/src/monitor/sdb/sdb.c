@@ -78,6 +78,10 @@ static int cmd_info_r(char *args) {
 static int cmd_x(char *args) {
   char *arg1 = strtok(NULL, " ");
   char *arg2 = strtok(NULL, " ");
+  if (arg1 == NULL || arg2 == NULL) {
+    printf("please input x [n] [addr]\n");
+    return 0;
+  }
   int n = atoi(arg1);
   vaddr_t addr;
   sscanf(arg2, "%x", &addr);
@@ -86,6 +90,58 @@ static int cmd_x(char *args) {
   }
   return 0;
 }
+
+// 表达式求值
+static int cmd_p(char *args) {
+  if (args == NULL) {
+    printf("please input p [expression]\n");
+    return 0;
+  }
+  bool success = true;
+  word_t result = expr(args, &success);
+  if (success) {
+    printf("%u\n", result);
+  } else {
+    Log("Invalid expression\n");
+  }
+  return 0;
+}
+
+// 设置监视点
+static int cmd_w(char *args) {
+  if (args == NULL) {
+    printf("please input w [expression]\n");
+    return 0;
+  }
+  WP *wp = new_wp(args);
+  if (wp == NULL) {
+    return 0;
+  }
+  printf("Set watchpoint %d\n", wp->NO);
+  return 0;
+}
+
+// 删除监视点
+static int cmd_d(char *args) {
+  char *arg = strtok(NULL, " ");
+  if (arg == NULL) {
+    printf("please input d [n]\n");
+    return 0;
+  }
+  int n = atoi(arg);
+  if (delete_wp(n)) {
+    printf("Delete watchpoint %d\n", n);
+  } else {
+    printf("No such watchpoint\n");
+  }
+  return 0;
+}
+
+// 显示所有监视点
+static int cmt_info_w(char *args) {
+  show_wp();
+  return 0;
+} 
 
 // 测试
 static int cmd_t(char *args) {
@@ -102,9 +158,13 @@ static struct {
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
   { "si", "Single step execution", cmd_si },
-  { "info", "Print the state of the program", cmd_info_r },
+  { "infor", "Print the state of the program", cmd_info_r },
   { "x", "Scan memory", cmd_x },
-  { "t", "test", cmd_t}
+  { "p", "Evaluate expression", cmd_p },
+  { "w", "Set watchpoint", cmd_w },
+  { "d", "Delete watchpoint", cmd_d },
+  { "t", "test", cmd_t},
+  { "infow", "show watchpoints", cmt_info_w}
   /* TODO: Add more commands */
 
 };

@@ -42,7 +42,7 @@ static void gen(char c) {
 
 static void gen_num() {
   int n = choose(10) + 1;
-  if (n > 5) n = 4;
+  if (n > 3) n = 3;
   int i;
   for (i = 0; i < n; i ++) {
     while (1) {
