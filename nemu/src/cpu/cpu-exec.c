@@ -31,11 +31,21 @@ uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
+#define I_RING_BUF_SIZE 32
+static char i_ring_buf[I_RING_BUF_SIZE][128];
+static size_t ptr_buf; // 指向缓冲区当前执行指令
+static bool p_loop; // 缓冲区是否循环覆盖
+
 void device_update();
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
+  strcpy(i_ring_buf[ptr_buf], _this->logbuf);
+  if (!p_loop && ptr_buf == 31) {
+    p_loop = true;
+  }
+  ptr_buf = (ptr_buf + 1) % I_RING_BUF_SIZE;
 #endif
 #ifdef CONFIG_WATCHPOINT
   if (refresh_wp()) { nemu_state.state = NEMU_STOP; return; }
@@ -86,6 +96,21 @@ static void execute(uint64_t n) {
   }
 }
 
+void print_i_ring_buf() {
+  size_t i;
+  if (p_loop) {
+    for (i = 0; i < I_RING_BUF_SIZE; i ++) {
+      size_t loc = (i + ptr_buf) % I_RING_BUF_SIZE;
+      printf("%s\n", i_ring_buf[loc]);
+    }
+  }
+  else {
+    for (i = 0; i < ptr_buf; i ++) {
+      printf("%s\n", i_ring_buf[i]);
+    }
+  }
+}
+
 static void statistic() {
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") PRIu64
@@ -127,6 +152,9 @@ void cpu_exec(uint64_t n) {
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
           nemu_state.halt_pc);
       // fall through
+      if (nemu_state.state == NEMU_ABORT || nemu_state.halt_ret != 0) {
+        print_i_ring_buf();
+      }
     case NEMU_QUIT: statistic();
   }
 }
