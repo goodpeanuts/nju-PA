@@ -18,6 +18,7 @@
 #include <cpu/difftest.h>
 #include <locale.h>
 #include "../monitor/sdb/sdb.h"
+#include "ftrace.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -31,10 +32,12 @@ uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
+#ifdef CONFIG_ITRACE_COND
 #define I_RING_BUF_SIZE 32
 static char i_ring_buf[I_RING_BUF_SIZE][128];
 static size_t ptr_buf; // 指向缓冲区当前执行指令
 static bool p_loop; // 缓冲区是否循环覆盖
+#endif
 
 void device_update();
 
@@ -155,6 +158,7 @@ void cpu_exec(uint64_t n) {
       if (nemu_state.state == NEMU_ABORT || nemu_state.halt_ret != 0) {
         print_i_ring_buf();
       }
+      ftrace_output();
     case NEMU_QUIT: statistic();
   }
 }
