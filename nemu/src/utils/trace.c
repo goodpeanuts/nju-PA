@@ -1,10 +1,12 @@
-#include "ftrace.h"
+#include "trace.h"
 #include <elf.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-char *elf_file = NULL; 
 
+char *ftrace_out = "ftrace.log";
+FILE *ftrace_fp = NULL;
+bool ftrace_enable = false;
 char current_func[BUF_SIZE] = "_start";
 char* ptr_current_func = current_func;
 
@@ -69,6 +71,9 @@ void init_ftrace(const char *ftrace_file) {
     fd = open(ftrace_file, O_RDONLY);
     assert(fd != -1);
   }
+  else {
+    return;
+  }
   Elf32_Ehdr ehdr;
 
   int n = read(fd, &ehdr, sizeof(ehdr));
@@ -114,11 +119,18 @@ void init_ftrace(const char *ftrace_file) {
     }
   }
 
+  ftrace_enable = true;
   free(strtab);
   close(fd);
+  ftrace_fp = fopen(ftrace_out, "w");
+  assert(ftrace_fp != NULL);
 }
 
 void ftrace(int type, vaddr_t pc_addr, vaddr_t func_addr) {
+  if (ftrace_enable == false) {
+    return;
+  }
+
   if (type == ret && isret(func_addr) == false) {
     return;
   }
@@ -148,24 +160,56 @@ void ftrace(int type, vaddr_t pc_addr, vaddr_t func_addr) {
 }
 
 void ftrace_output() {
-    printf("\n [Function info:] \n");
-    for (int i = 0; i < func_info_cnt; i++) {
-        printf("Function %s at 0x%x\n", function_info[i].name, function_info[i].address);
-    }
-    printf("\n [Call & Ret info:] \n");
-    for (int i = 0; i < ft_cnt; i++) {
-        printf("0x%x: %*s", ft_record[i].pc_addr, (int)ft_record[i].tab, "");
-        if (ft_record[i].type == call) {
-        printf("[Call]  %s@0x%x\n", get_func_name(ft_record[i].func_addr), ft_record[i].func_addr);
+  if (ftrace_enable == false) {
+    return;
+  }
+  
+  fprintf(ftrace_fp, "\n [Function info:] \n");
+  for (int i = 0; i < func_info_cnt; i++) {
+      // printf("Function %s at 0x%x\n", function_info[i].name, function_info[i].address);
+      fprintf(ftrace_fp, "Function %s at 0x%x\n", function_info[i].name, function_info[i].address);
+  }
+  fprintf(ftrace_fp, "\n [Call & Ret info:] \n");
+  for (int i = 0; i < ft_cnt; i++) {
+      fprintf(ftrace_fp, "0x%x: %*s", ft_record[i].pc_addr, (int)ft_record[i].tab, "");
+      if (ft_record[i].type == call) {
+        fprintf(ftrace_fp, "[Call]  %s@0x%x\n", get_func_name(ft_record[i].func_addr), ft_record[i].func_addr);
         // printf("[Call]  0x%x\n", ft_record[i].func_addr);
-        } else {
-        printf("[Return] %s@0x%x\n", get_ret_name(ft_record[i].func_addr), ft_record[i].func_addr);
+      } else {
+        fprintf(ftrace_fp, "[Return] %s@0x%x\n", get_ret_name(ft_record[i].func_addr), ft_record[i].func_addr);
         // printf("[Return] 0x%x\n", ft_record[i].func_addr);
-        }
-    }
+      }
+  }
 
-    printf("\n [Ret info:] \n");
-    for (int i = 0; i < ret_info_cnt; i++) {
-        printf("Return %s at 0x%x\n", ret_info[i].name, ret_info[i].address);
-    }
+  fprintf(ftrace_fp, "\n [Ret info:] \n");
+  for (int i = 0; i < ret_info_cnt; i++) {
+      fprintf(ftrace_fp, "Return %s at 0x%x\n", ret_info[i].name, ret_info[i].address);
+      // printf("Return %s at 0x%x\n", ret_info[i].name, ret_info[i].address);
+  }
 }
+
+#ifdef CONFIG_MTRACE
+char *mtrace_out = "mtrace.log";
+FILE *mtrace_fp = NULL;
+
+void init_mtrace() {
+  mtrace_fp = fopen(mtrace_out, "w");
+  assert(mtrace_fp != NULL);
+}
+
+bool mtrace_addr_enable(paddr_t addr) {
+  if (addr >= strtoul(CONFIG_MTRACE_MEM_START, NULL, 16) && addr <= strtoul(CONFIG_MTRACE_MEM_END, NULL, 16)) 
+    return true;
+  return false;
+}
+#endif
+
+#ifdef CONFIG_DTRACE
+char *dtrace_out = "dtrace.log";
+FILE *dtrace_fp = NULL;
+
+void init_dtrace() {
+  dtrace_fp = fopen(dtrace_out, "w");
+  assert(dtrace_fp != NULL);
+}
+#endif

@@ -67,24 +67,10 @@ uint64_t get_time();
   } while (0) \
 )
 
-#ifdef CONFIG_MTRACE
-#define mtarce_write(addr, ...) IFDEF(CONFIG_TARGET_NATIVE_ELF, \
-  do { \
-    extern FILE* mtrace_fp; \
-    extern bool mtrace_addr_enable(paddr_t addr); \
-    if (mtrace_addr_enable(addr)) { \
-      fprintf(mtrace_fp, __VA_ARGS__); \
-      fflush(mtrace_fp); \
-    } \
-  } while (0) \
-)
-#endif
-
 #define _Log(...) \
   do { \
     printf(__VA_ARGS__); \
     log_write(__VA_ARGS__); \
   } while (0)
-
 
 #endif

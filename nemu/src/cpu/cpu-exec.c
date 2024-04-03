@@ -18,7 +18,7 @@
 #include <cpu/difftest.h>
 #include <locale.h>
 #include "../monitor/sdb/sdb.h"
-#include "ftrace.h"
+#include "trace.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -99,6 +99,7 @@ static void execute(uint64_t n) {
   }
 }
 
+#ifdef CONFIG_ITRACE_COND
 void print_i_ring_buf() {
   size_t i;
   if (p_loop) {
@@ -113,6 +114,7 @@ void print_i_ring_buf() {
     }
   }
 }
+#endif
 
 static void statistic() {
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
@@ -155,9 +157,11 @@ void cpu_exec(uint64_t n) {
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
           nemu_state.halt_pc);
       // fall through
+#ifdef CONFIG_ITRACE_COND
       if (nemu_state.state == NEMU_ABORT || nemu_state.halt_ret != 0) {
         print_i_ring_buf();
       }
+#endif
       ftrace_output();
     case NEMU_QUIT: statistic();
   }

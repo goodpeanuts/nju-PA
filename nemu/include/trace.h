@@ -1,6 +1,8 @@
 #include <common.h>
 
+extern FILE *ftrace_fp;
 extern char *elf_file; 
+extern bool ftrace_enable; 
 
 typedef struct {
   char* name;
@@ -41,3 +43,23 @@ void add_ret_info(paddr_t addr, char* name);
 void init_ftrace(const char *ftrace_file);
 void ftrace(int type, vaddr_t pc_addr, vaddr_t func_addr);
 void ftrace_output();
+
+#ifdef CONFIG_MTRACE
+extern FILE *mtrace_fp;
+void init_mtrace();
+bool mtrace_addr_enable(paddr_t addr);
+
+#define mtarce_write(addr, ...) IFDEF(CONFIG_TARGET_NATIVE_ELF, \
+  do { \
+    if (mtrace_addr_enable(addr)) { \
+      fprintf(mtrace_fp, __VA_ARGS__); \
+      fflush(mtrace_fp); \
+    } \
+  } while (0) \
+)
+#endif
+
+#ifdef CONFIG_DTRACE
+extern FILE *dtrace_fp;
+void init_dtrace();
+#endif
