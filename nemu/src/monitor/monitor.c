@@ -115,17 +115,9 @@ void init_monitor(int argc, char *argv[]) {
   /* Open the log file. */
   init_log(log_file);
 
-  #ifdef CONFIG_MTRACE
-  init_mtrace();
-  #endif
-
-  #ifdef CONFIG_FTRACE
-  init_ftrace(elf_file);
-  #endif
-
-  #ifdef CONFIG_DTRACE
-  init_dtrace();
-  #endif
+#ifdef CONFIG_TRACE
+  init_trace();
+#endif
 
   /* Initialize memory. */
   init_mem();

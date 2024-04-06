@@ -63,3 +63,12 @@ bool mtrace_addr_enable(paddr_t addr);
 extern FILE *dtrace_fp;
 void init_dtrace();
 #endif
+
+#ifdef CONFIG_ETRACE
+extern FILE *etrace_fp;
+void init_etrace();
+#endif
+
+#ifdef CONFIG_TRACE
+void init_trace();
+#endif

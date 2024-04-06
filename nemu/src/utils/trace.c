@@ -213,3 +213,34 @@ void init_dtrace() {
   assert(dtrace_fp != NULL);
 }
 #endif
+
+#ifdef CONFIG_ETRACE
+char *etrace_out = "etrace.log";
+FILE *etrace_fp = NULL;
+
+void init_etrace() {
+  etrace_fp = fopen(etrace_out, "w");
+  assert(etrace_fp != NULL);
+}
+#endif
+
+#ifdef CONFIG_TRACE
+void init_trace() {
+
+#ifdef CONFIG_MTRACE
+  init_mtrace();
+#endif
+
+#ifdef CONFIG_FTRACE
+  init_ftrace(elf_file);
+#endif
+
+#ifdef CONFIG_DTRACE
+  init_dtrace();
+#endif
+
+#ifdef CONFIG_ETRACE
+  init_etrace();
+#endif
+}
+#endif
